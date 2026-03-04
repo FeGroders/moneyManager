@@ -7,11 +7,16 @@ export interface Transaction {
     amount: number
     date: string // YYYY-MM-DD
     category_id: string | null
+    account_id: string | null
     type: TransactionType
     created_at?: string
 
-    // Relacionamento (preenchido quando fazemos JOIN com a tabela de categorias)
+    // Relacionamentos (preenchido quando fazemos JOIN)
     categories?: {
+        id: string
+        name: string
+    } | null
+    accounts?: {
         id: string
         name: string
     } | null
@@ -22,6 +27,7 @@ export interface CreateTransactionInput {
     amount: number
     date: string
     category_id?: string | null
+    account_id?: string | null
     type: TransactionType
 }
 
@@ -30,5 +36,6 @@ export interface UpdateTransactionInput {
     amount?: number
     date?: string
     category_id?: string | null
+    account_id?: string | null
     type?: TransactionType
 }

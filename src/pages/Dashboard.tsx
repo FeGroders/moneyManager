@@ -1,9 +1,11 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TrendingUp, Activity, PieChart as PieChartIcon, BarChart2, Plus } from 'lucide-react'
+import { TrendingUp, Activity, PieChart as PieChartIcon, BarChart2, Plus, Banknote, Landmark, CreditCard, PiggyBank, Wallet, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { getTransactions } from '@/services/transactionsService'
+import { accountsService } from '@/services/accountsService'
 import type { Transaction } from '@/types/transaction'
+import type { Account } from '@/types/account'
 import {
   PieChart,
   Pie,
@@ -20,25 +22,45 @@ import {
 import { startOfMonth, endOfMonth, isWithinInterval, subMonths, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-const INCOME_COLOR = '#10b981' // Green
-const EXPENSE_COLOR = '#ef4444' // Red
+const INCOME_COLOR = '#10b981'
+const EXPENSE_COLOR = '#ef4444'
 const COLORS = ['#8b5cf6', '#3b82f6', '#ec4899', '#f59e0b', '#10b981', '#14b8a6', '#6366f1']
+
+const ACC_ICONS: Record<Account['type'], React.ReactNode> = {
+  cash: <Banknote size={20} />,
+  checking: <Landmark size={20} />,
+  credit_card: <CreditCard size={20} />,
+  savings: <PiggyBank size={20} />,
+}
+
+const ACC_LABELS: Record<Account['type'], string> = {
+  cash: 'Dinheiro',
+  checking: 'Conta Corrente',
+  credit_card: 'Cartão de Crédito',
+  savings: 'Poupança',
+}
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
+  const sliderRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function load() {
       if (!user) return
       try {
         setLoading(true)
-        const txns = await getTransactions(user.id)
+        const [txns, accs] = await Promise.all([
+          getTransactions(user.id),
+          accountsService.getAll(user.id),
+        ])
         setTransactions(txns)
+        setAccounts(accs)
       } catch (err) {
-        console.error('Erro ao carregar transações no dashboard', err)
+        console.error('Erro ao carregar dashboard', err)
       } finally {
         setLoading(false)
       }
@@ -142,6 +164,58 @@ export function DashboardPage() {
           Nova Movimentação
         </button>
       </div>
+
+      {/* Account Balance Slider */}
+      {accounts.length > 0 && (
+        <div style={{ position: 'relative', marginBottom: 28 }}>
+          {/* scroll left */}
+          <button
+            className="slider-arrow slider-arrow-left"
+            onClick={() => sliderRef.current?.scrollBy({ left: -260, behavior: 'smooth' })}
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          <div ref={sliderRef} className="account-slider">
+            {accounts.map((acc) => (
+              <div
+                key={acc.id}
+                className="account-slider-card"
+                onClick={() => navigate(`/wallet/${acc.id}`)}
+              >
+                <div className="acc-card-header">
+                  <div className="acc-card-icon">{ACC_ICONS[acc.type]}</div>
+                  <span className="acc-card-type">{ACC_LABELS[acc.type]}</span>
+                </div>
+                <div className="acc-card-name">{acc.name}</div>
+                <div
+                  className="acc-card-balance"
+                  style={{ color: Number(acc.balance) >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}
+                >
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(acc.balance))}
+                </div>
+              </div>
+            ))}
+
+            {/* "Ver Carteira" card */}
+            <div
+              className="account-slider-card account-slider-card-wallet"
+              onClick={() => navigate('/wallet')}
+            >
+              <Wallet size={24} style={{ color: 'var(--color-primary-light)', marginBottom: 8 }} />
+              <span style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>Ver Carteira</span>
+            </div>
+          </div>
+
+          {/* scroll right */}
+          <button
+            className="slider-arrow slider-arrow-right"
+            onClick={() => sliderRef.current?.scrollBy({ left: 260, behavior: 'smooth' })}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="loading-screen" style={{ minHeight: '300px' }}>

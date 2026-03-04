@@ -7,6 +7,8 @@ import { DashboardPage } from '@/pages/Dashboard'
 import { AppLayout } from '@/layouts/AppLayout'
 import { CategoriesPage } from '@/pages/Categories'
 import { TransactionsPage } from '@/pages/Transactions'
+import { WalletPage } from '@/pages/Wallet'
+import { AccountDetailPage } from '@/pages/AccountDetail'
 
 export function AppRouter() {
   return (
@@ -26,6 +28,8 @@ export function AppRouter() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/wallet" element={<WalletPage />} />
+              <Route path="/wallet/:id" element={<AccountDetailPage />} />
             </Route>
           </Route>
 

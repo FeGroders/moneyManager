@@ -24,3 +24,5 @@ dist-ssr/
 # Sistema
 .DS_Store
 Thumbs.db
+
+.agents/
