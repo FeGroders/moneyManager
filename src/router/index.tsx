@@ -3,6 +3,8 @@ import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { LoginPage } from '@/pages/Login'
 import { RegisterPage } from '@/pages/Register'
+import { ForgotPasswordPage } from '@/pages/ForgotPassword'
+import { ResetPasswordPage } from '@/pages/ResetPassword'
 import { DashboardPage } from '@/pages/Dashboard'
 import { AppLayout } from '@/layouts/AppLayout'
 import { CategoriesPage } from '@/pages/Categories'
@@ -22,6 +24,8 @@ export function AppRouter() {
           {/* Rotas públicas */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Rotas protegidas (com AppLayout) */}
           <Route element={<ProtectedRoute />}>

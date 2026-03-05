@@ -3,7 +3,6 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Tag,
-  LogOut,
   TrendingUp,
   Menu,
   X,
@@ -11,7 +10,6 @@ import {
   ChevronRight,
   ArrowUpDown,
   Wallet,
-  Settings,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -26,18 +24,17 @@ const navItems: NavItem[] = [
   { to: '/wallet', label: 'Carteira', icon: <Wallet size={20} /> },
   { to: '/transactions', label: 'Movimentações', icon: <ArrowUpDown size={20} /> },
   { to: '/categories', label: 'Categorias', icon: <Tag size={20} /> },
-  { to: '/settings', label: 'Configurações', icon: <Settings size={20} /> },
 ]
 
 export function AppLayout() {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false) // Mobile drawer
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false) // Desktop collapse
 
-  async function handleSignOut() {
-    await signOut()
-    navigate('/login', { replace: true })
+  function handleUserClick() {
+    navigate('/settings')
+    setSidebarOpen(false)
   }
 
   return (
@@ -92,7 +89,11 @@ export function AppLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="sidebar-user">
+          <button
+            className="sidebar-user sidebar-user-btn"
+            onClick={handleUserClick}
+            title="Abrir configurações"
+          >
             <div className="sidebar-user-avatar" title={user?.email}>
               {(user?.user_metadata?.first_name?.[0] ?? user?.email?.[0])?.toUpperCase() ?? 'U'}
             </div>
@@ -104,15 +105,6 @@ export function AppLayout() {
               ) : null}
               <span className="sidebar-user-email">{user?.email}</span>
             </div>
-          </div>
-          <button
-            id="btn-logout"
-            className="btn btn-ghost btn-sm sidebar-logout"
-            onClick={handleSignOut}
-            title="Sair"
-          >
-            <LogOut size={16} />
-            <span className="logout-label">Sair</span>
           </button>
         </div>
       </aside>

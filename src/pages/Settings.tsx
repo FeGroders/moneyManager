@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { User, Save, CheckCircle, AlertCircle, Lock, Eye, EyeOff } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { User, Save, CheckCircle, AlertCircle, Lock, Eye, EyeOff, LogOut } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 
 export function SettingsPage() {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
 
   // Profile fields
   const [firstName, setFirstName] = useState('')
@@ -37,6 +39,11 @@ export function SettingsPage() {
       setBirthDate(user.user_metadata.birth_date ?? '')
     }
   }, [user])
+
+  async function handleSignOut() {
+    await signOut()
+    navigate('/login', { replace: true })
+  }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault()
@@ -367,6 +374,30 @@ export function SettingsPage() {
               </button>
             </div>
           </form>
+        </section>
+
+        {/* Logout Section */}
+        <section className="settings-card settings-card-danger">
+          <div className="settings-card-header">
+            <div className="settings-card-icon settings-card-icon-danger">
+              <LogOut size={20} />
+            </div>
+            <div>
+              <h2 className="settings-card-title">Sessão</h2>
+              <p className="settings-card-subtitle">Encerrar sua sessão no Money Manager</p>
+            </div>
+          </div>
+          <div className="settings-logout-row">
+            <p className="settings-logout-desc">Ao sair, você precisará fazer login novamente para acessar sua conta.</p>
+            <button
+              id="btn-logout"
+              className="btn btn-danger"
+              onClick={handleSignOut}
+            >
+              <LogOut size={16} />
+              Sair da conta
+            </button>
+          </div>
         </section>
       </div>
     </div>

@@ -147,6 +147,10 @@ export function DashboardPage() {
 
   const renderTooltipFormatter = (value: any) => [formatCurrency(Number(value))]
 
+  // Label customizado para pizza: só exibe % com fonte menor, sem texto longo
+  const renderPieLabel = ({ percent }: { percent?: number }) =>
+    percent && percent > 0.04 ? `${((percent) * 100).toFixed(0)}%` : ''
+
   return (
     <div className="page dashboard-page">
       <div className="page-header">
@@ -250,7 +254,8 @@ export function DashboardPage() {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={({ name, percent }: { name?: string; percent?: number }) => `${name || ''} ${((percent || 0) * 100).toFixed(0)}%`}
+                      label={renderPieLabel}
+                     labelLine={false}
                     >
                       {pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -274,7 +279,7 @@ export function DashboardPage() {
                 <BarChart data={barData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2d2d3a" />
                   <XAxis dataKey="name" stroke="#a0a0ab" tickLine={false} axisLine={false} />
-                  <YAxis stroke="#a0a0ab" tickLine={false} axisLine={false} tickFormatter={(val: number) => `R$ ${val}`} />
+                  <YAxis stroke="#a0a0ab" tickLine={false} axisLine={false} width={55} tickFormatter={(val: number) => val >= 1000 ? `R$${(val / 1000).toFixed(1)}k` : `R$${val}`} />
                   <Tooltip
                     cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
                     formatter={renderTooltipFormatter}
@@ -308,7 +313,8 @@ export function DashboardPage() {
                       innerRadius={70}
                       outerRadius={100}
                       paddingAngle={2}
-                      label={({ name, percent }: { name?: string; percent?: number }) => `${name || ''} ${((percent || 0) * 100).toFixed(0)}%`}
+                       label={renderPieLabel}
+                       labelLine={false}
                     >
                       {donutData.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

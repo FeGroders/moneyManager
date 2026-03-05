@@ -113,6 +113,12 @@ export function LoginPage() {
             )}
           </div>
 
+          <div style={{ textAlign: 'right', marginTop: -4 }}>
+            <Link to="/forgot-password" className="auth-link" style={{ fontSize: '0.82rem' }}>
+              Esqueceu sua senha?
+            </Link>
+          </div>
+
           <button
             type="submit"
             id="btn-login"
