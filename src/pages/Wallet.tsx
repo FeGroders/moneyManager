@@ -12,6 +12,7 @@ import {
   PiggyBank,
   ChevronDown,
   ArrowLeftRight,
+  GripVertical
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -67,6 +68,11 @@ export function WalletPage() {
   const [selectedType, setSelectedType] = useState<Account['type']>('checking')
   const typeDropdownRef = useRef<HTMLDivElement>(null)
 
+  // Credit card extra fields
+  const [creditLimit, setCreditLimit] = useState('')
+  const [closingDay, setClosingDay] = useState('')
+  const [dueDay, setDueDay] = useState('')
+
   // Transfer modal
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
   const [transferFrom, setTransferFrom] = useState('')
@@ -80,6 +86,10 @@ export function WalletPage() {
   const [transferError, setTransferError] = useState('')
   const fromDropdownRef = useRef<HTMLDivElement>(null)
   const toDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Drag and Drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } =
     useForm<AccountFormValues>({
@@ -135,6 +145,9 @@ export function WalletPage() {
     setEditingAccount(null)
     setSelectedType('checking')
     setIsTypeDropdownOpen(false)
+    setCreditLimit('')
+    setClosingDay('')
+    setDueDay('')
     reset({ name: '', type: 'checking', balance: 0 })
     setIsModalOpen(true)
   }
@@ -143,7 +156,11 @@ export function WalletPage() {
     setEditingAccount(acc)
     setSelectedType(acc.type)
     setIsTypeDropdownOpen(false)
-    reset({ name: acc.name, type: acc.type, balance: acc.balance })
+    setCreditLimit(acc.credit_limit != null ? String(acc.credit_limit) : '')
+    setClosingDay(acc.closing_day != null ? String(acc.closing_day) : '')
+    setDueDay(acc.due_day != null ? String(acc.due_day) : '')
+    const formBalance = acc.type === 'credit_card' ? Math.abs(Number(acc.balance)) : Number(acc.balance)
+    reset({ name: acc.name, type: acc.type, balance: formBalance })
     setIsModalOpen(true)
   }
 
@@ -161,11 +178,22 @@ export function WalletPage() {
 
   async function onSubmit(data: AccountFormValues) {
     if (!user) return
+    
+    let finalBalance = data.balance
+    if (data.type === 'credit_card') {
+      finalBalance = -Math.abs(data.balance)
+    }
+
+    const ccFields = data.type === 'credit_card' ? {
+      credit_limit: parseFloat(creditLimit) || 0,
+      closing_day: parseInt(closingDay) || undefined,
+      due_day: parseInt(dueDay) || undefined,
+    } : { credit_limit: undefined, closing_day: undefined, due_day: undefined }
     try {
       if (editingAccount) {
-        await accountsService.update(editingAccount.id, user.id, data)
+        await accountsService.update(editingAccount.id, user.id, { ...data, balance: finalBalance, ...ccFields })
       } else {
-        await accountsService.create(user.id, data)
+        await accountsService.create(user.id, { ...data, balance: finalBalance, ...ccFields })
       }
       closeModal()
       fetchAccounts()
@@ -188,7 +216,35 @@ export function WalletPage() {
     }
   }
 
-  const totalBalance = accounts.reduce((acc, a) => acc + Number(a.balance), 0)
+  async function handleDragEnd() {
+    if (!user || draggedIndex === null || dragOverIndex === null || draggedIndex === dragOverIndex) {
+      setDraggedIndex(null)
+      setDragOverIndex(null)
+      return
+    }
+
+    const newAccounts = [...accounts]
+    const [moved] = newAccounts.splice(draggedIndex, 1)
+    newAccounts.splice(dragOverIndex, 0, moved)
+
+    setAccounts(newAccounts) // optimistic update
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+
+    try {
+      const updates = newAccounts.map((acc, i) => ({ id: acc.id, order_index: i }))
+      await accountsService.updateOrder(user.id, updates)
+    } catch (err: any) {
+      setErrorMsg('Erro ao reordenar: ' + err.message)
+      fetchAccounts() // revert on error
+    }
+  }
+
+  const totalBalance = accounts.reduce((acc, a) => {
+    const bal = Number(a.balance)
+    const actualBal = (a.type === 'credit_card' && bal > 0) ? -bal : bal
+    return acc + actualBal
+  }, 0)
 
   function openTransferModal() {
     const cashAcc = accounts.find((a) => a.type === 'cash')
@@ -272,13 +328,45 @@ export function WalletPage() {
         </div>
       ) : (
         <div className="transactions-list">
-          {accounts.map((acc) => (
+          {accounts.map((acc, idx) => {
+            const bal = Number(acc.balance)
+            const displayBal = (acc.type === 'credit_card' && bal > 0) ? -bal : bal
+            
+            return (
             <div
               key={acc.id}
               className={`transaction-item account-card-clickable ${deletingId === acc.id ? 'txn-deleting' : ''}`}
               onClick={() => navigate(`/wallet/${acc.id}`)}
+              style={{
+                position: 'relative',
+                opacity: draggedIndex === idx ? 0.5 : 1,
+                borderTop: dragOverIndex === idx && draggedIndex !== null && draggedIndex > idx ? '2px solid var(--color-primary)' : '',
+                borderBottom: dragOverIndex === idx && draggedIndex !== null && draggedIndex < idx ? '2px solid var(--color-primary)' : '',
+                transition: 'border 0.2s',
+              }}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = 'move'
+                setDraggedIndex(idx)
+              }}
+              onDragOver={(e) => {
+                e.preventDefault() // necessary to allow dropping
+                if (draggedIndex !== null && draggedIndex !== idx) setDragOverIndex(idx)
+              }}
+              onDragLeave={() => setDragOverIndex(null)}
+              onDrop={(e) => {
+                e.preventDefault()
+                handleDragEnd()
+              }}
+              onDragEnd={() => {
+                setDraggedIndex(null)
+                setDragOverIndex(null)
+              }}
             >
               <div className="txn-left">
+                <div style={{ marginRight: 8, cursor: 'grab', color: 'var(--color-muted)' }} onClick={(e) => e.stopPropagation()}>
+                  <GripVertical size={20} />
+                </div>
                 <div className="txn-icon" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--color-primary-light)' }}>
                   {accountTypeIcons[acc.type]}
                 </div>
@@ -290,8 +378,8 @@ export function WalletPage() {
                 </div>
               </div>
               <div className="txn-right">
-                <span className={`txn-amount ${acc.balance >= 0 ? 'text-success' : ''}`} style={acc.balance < 0 ? { color: 'var(--color-error)' } : {}}>
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(acc.balance)}
+                <span className={`txn-amount ${displayBal >= 0 && acc.type !== 'credit_card' ? 'text-success' : ''}`} style={displayBal < 0 ? { color: 'var(--color-error)' } : {}}>
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(displayBal)}
                 </span>
                 {acc.type !== 'cash' && (
                   <div className="txn-actions" onClick={(e) => e.stopPropagation()}>
@@ -303,7 +391,7 @@ export function WalletPage() {
                 )}
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
 
@@ -358,16 +446,62 @@ export function WalletPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Saldo Atual *</label>
+                <label className="form-label">
+                  {selectedType === 'credit_card' ? 'Fatura Atual (valor devido)' : 'Saldo Atual'} *
+                </label>
                 <input
                   type="number"
                   step="0.01"
                   className={`form-input ${errors.balance ? 'input-error' : ''}`}
-                  placeholder="0,00"
+                  placeholder={selectedType === 'credit_card' ? 'Valor da fatura atual (negativo)' : '0,00'}
                   {...register('balance', { valueAsNumber: true })}
                 />
                 {errors.balance && <span className="form-error">{errors.balance.message}</span>}
               </div>
+
+              {/* Campos extras para cartão de crédito */}
+              {selectedType === 'credit_card' && (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">Limite do Cartão</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-input"
+                      placeholder="Ex: 5000,00"
+                      value={creditLimit}
+                      onChange={(e) => setCreditLimit(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Dia de Fechamento</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="28"
+                        className="form-input"
+                        placeholder="Ex: 10"
+                        value={closingDay}
+                        onChange={(e) => setClosingDay(e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Dia de Vencimento</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="28"
+                        className="form-input"
+                        placeholder="Ex: 20"
+                        value={dueDay}
+                        onChange={(e) => setDueDay(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="modal-actions">
                 <button type="button" className="btn btn-ghost" onClick={closeModal} disabled={isSubmitting}>Cancelar</button>

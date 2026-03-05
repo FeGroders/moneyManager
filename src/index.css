@@ -1455,6 +1455,140 @@ body,
   right: -14px;
 }
 
+/* ─── Credit Card Panel ──────────────────────────────────────── */
+
+.cc-panel {
+  background: linear-gradient(135deg, rgba(17,18,33,0.98) 0%, rgba(30,20,60,0.95) 100%);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.1);
+}
+
+.cc-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.cc-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #7c3aed, #9f67ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+}
+
+.cc-name {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.cc-type {
+  color: var(--color-primary-light);
+  font-size: 0.85rem;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.cc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cc-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.cc-stat {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.cc-stat-label {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-weight: 500;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cc-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.cc-stat-date {
+  font-size: 1rem;
+  color: #c4b5fd;
+}
+
+/* Limit progress bar */
+.cc-limit-wrap {
+  margin-top: 4px;
+}
+
+.cc-limit-label {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+}
+
+.cc-limit-pct {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e4e6f0;
+}
+
+.cc-limit-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.cc-limit-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s;
+}
+
+@media (max-width: 600px) {
+  .cc-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .cc-header-actions {
+    width: 100%;
+  }
+  .cc-stats-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* ─── Settings Page ──────────────────────────────────────────────── */
 
 .settings-page {

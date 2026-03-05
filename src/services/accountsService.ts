@@ -7,6 +7,7 @@ export const accountsService = {
             .from('accounts')
             .select('*')
             .eq('user_id', userId)
+            .order('order_index', { ascending: true })
             .order('name', { ascending: true })
 
         if (error) {
@@ -49,5 +50,19 @@ export const accountsService = {
             .eq('user_id', userId)
 
         if (error) throw new Error(error.message)
+    },
+
+    async updateOrder(userId: string, accountsData: { id: string, order_index: number }[]): Promise<void> {
+        const promises = accountsData.map(acc =>
+            supabase
+                .from('accounts')
+                .update({ order_index: acc.order_index })
+                .eq('id', acc.id)
+                .eq('user_id', userId)
+        )
+        const results = await Promise.all(promises)
+        for (const res of results) {
+            if (res.error) throw new Error(res.error.message)
+        }
     }
 }
