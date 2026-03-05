@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { BiometricLock } from '@/components/BiometricLock'
 import { LoginPage } from '@/pages/Login'
 import { RegisterPage } from '@/pages/Register'
 import { ForgotPasswordPage } from '@/pages/ForgotPassword'
@@ -29,7 +30,7 @@ export function AppRouter() {
 
           {/* Rotas protegidas (com AppLayout) */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<AppLayout />}>
+            <Route element={<BiometricLock><AppLayout /></BiometricLock>}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/categories" element={<CategoriesPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />

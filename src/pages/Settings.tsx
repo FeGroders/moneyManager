@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { User, Save, CheckCircle, AlertCircle, Lock, Eye, EyeOff, LogOut } from 'lucide-react'
+import { User, Save, CheckCircle, AlertCircle, Lock, Eye, EyeOff, LogOut, Fingerprint, Smartphone } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { useBiometrics } from '@/hooks/useBiometrics'
 
 export function SettingsPage() {
   const { user, signOut } = useAuth()
+  const { isSupported, isEnabled, enable, disable } = useBiometrics()
   const navigate = useNavigate()
 
   // Profile fields
@@ -108,6 +110,14 @@ export function SettingsPage() {
       setNewPassword('')
       setConfirmPassword('')
       setTimeout(() => setPasswordSuccess(false), 3000)
+    }
+  }
+
+  async function handleToggleBiometrics() {
+    if (isEnabled) {
+      disable()
+    } else {
+      await enable()
     }
   }
 
@@ -375,6 +385,35 @@ export function SettingsPage() {
             </div>
           </form>
         </section>
+
+        {/* Biometrics Section */}
+        {isSupported && (
+          <section className="settings-card">
+            <div className="settings-card-header">
+              <div className="settings-card-icon">
+                <Smartphone size={20} />
+              </div>
+              <div>
+                <h2 className="settings-card-title">Face ID / Touch ID</h2>
+                <p className="settings-card-subtitle">Desbloqueio rápido do aplicativo</p>
+              </div>
+            </div>
+            <div className="settings-logout-row" style={{ alignItems: 'center' }}>
+              <p className="settings-logout-desc" style={{ flex: 1, margin: 0, paddingRight: 16 }}>
+                Exigir autenticação biométrica sempre que o aplicativo for aberto.
+              </p>
+              <button
+                type="button"
+                className={`btn ${isEnabled ? 'btn-danger' : 'btn-primary'}`}
+                onClick={handleToggleBiometrics}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                <Fingerprint size={16} />
+                {isEnabled ? 'Desativar' : 'Ativar'}
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* Logout Section */}
         <section className="settings-card settings-card-danger">
