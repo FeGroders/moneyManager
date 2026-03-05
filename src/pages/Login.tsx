@@ -3,8 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, LogIn, TrendingUp } from 'lucide-react'
+import { Eye, EyeOff, LogIn, TrendingUp, Fingerprint } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBiometrics } from '@/hooks/useBiometrics'
 
 const loginSchema = z.object({
   email: z
@@ -22,7 +23,11 @@ type LoginFormData = z.infer<typeof loginSchema>
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  
   const { signIn } = useAuth()
+  const { isSupported, isEnabled, enable, authenticateAndSignIn } = useBiometrics()
+  const [isBioLoading, setIsBioLoading] = useState(false)
+  
   const navigate = useNavigate()
 
   const {
@@ -46,7 +51,34 @@ export function LoginPage() {
       return
     }
 
+    // Se o usuário já deixou marcado como enable em algum momento, a gente re-salva as credenciais 
+    // p/ garantir que estão atualizadas. Se ele não tem ainda, a gente pergunta.
+    if (!isEnabled && isSupported) {
+      const confirmSave = window.confirm('Deseja habilitar o Face ID / Touch ID para entrar mais rápido da próxima vez?')
+      if (confirmSave) {
+        await enable(data.email, data.password)
+      }
+    } else if (isEnabled && isSupported) {
+      // Atualizar no storage
+      await enable(data.email, data.password)
+    }
+
     navigate('/dashboard', { replace: true })
+  }
+
+  async function handleBiometricLogin() {
+    setIsBioLoading(true)
+    setServerError(null)
+    
+    const { success, error } = await authenticateAndSignIn()
+    
+    if (success) {
+      navigate('/dashboard', { replace: true })
+    } else {
+      setServerError(error || 'Erro na autenticação biométrica.')
+    }
+    
+    setIsBioLoading(false)
   }
 
   return (
@@ -65,6 +97,30 @@ export function LoginPage() {
           <h1 className="auth-title">Money Manager</h1>
           <p className="auth-subtitle">Entre na sua conta</p>
         </div>
+
+        {isSupported && isEnabled && (
+          <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid var(--border)' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-full"
+              style={{ height: 50 }}
+              onClick={handleBiometricLogin}
+              disabled={isBioLoading || isSubmitting}
+            >
+              {isBioLoading ? (
+                <span className="btn-spinner" />
+              ) : (
+                <>
+                  <Fingerprint size={20} />
+                  Entrar com Face ID
+                </>
+              )}
+            </button>
+            <div style={{ textAlign: 'center', marginTop: 16, fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              ou entre com sua senha
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
           {serverError && (

@@ -19,9 +19,23 @@ function base64UrlToArrayBuffer(base64ulr: string): ArrayBuffer {
 }
 
 const STORAGE_KEY = '@MoneyManager:biometrics'
+const CREDENTIALS_KEY = '@MoneyManager:biometrics_creds'
+
+// Obfuscation helpers (Simple Base64 - not encryption, but prevents casual visual inspection)
+function obfuscate(str: string): string {
+    return btoa(unescape(encodeURIComponent(str)))
+}
+
+function deobfuscate(str: string): string {
+    try {
+        return decodeURIComponent(escape(atob(str)))
+    } catch (e) {
+        return ''
+    }
+}
 
 export function useBiometrics() {
-    const { user } = useAuth()
+    const { user, signIn } = useAuth()
     const [isSupported, setIsSupported] = useState(false)
     const [isEnabled, setIsEnabled] = useState(false)
 
@@ -37,76 +51,82 @@ export function useBiometrics() {
         }
     }, [])
 
-    // Check if biometrics is already enabled for this user
+    // Check if biometrics is already enabled
     useEffect(() => {
-        if (!user) {
-            setIsEnabled(false)
-            return
-        }
-        const saved = localStorage.getItem(`${STORAGE_KEY}:${user.id}`)
-        setIsEnabled(!!saved)
+        // We can be enabled globally if there are saved credentials OR for an active user
+        const savedId = localStorage.getItem(STORAGE_KEY)
+        setIsEnabled(!!savedId)
     }, [user])
 
-    const enable = useCallback(async () => {
-        if (!user || !isSupported) return false
+    const enable = useCallback(
+        async (email?: string, password?: string) => {
+            // We need either a logged in user, or email/password passed in if we're setting it up eagerly
+            const targetEmail = email || user?.email
+            if (!isSupported || !targetEmail) return false
 
-        try {
-            // Create a dummy challenge (in a real app, from server)
-            const challenge = new Uint8Array(32)
-            window.crypto.getRandomValues(challenge)
+            try {
+                const challenge = new Uint8Array(32)
+                window.crypto.getRandomValues(challenge)
 
-            // Dummy user ID
-            const userId = bufferEncode(user.id)
+                const userId = bufferEncode(user?.id || 'local-user')
 
-            const credential = await navigator.credentials.create({
-                publicKey: {
-                    challenge,
-                    rp: {
-                        name: 'Money Manager',
-                        id: window.location.hostname,
+                const credential = await navigator.credentials.create({
+                    publicKey: {
+                        challenge,
+                        rp: {
+                            name: 'Money Manager',
+                            id: window.location.hostname,
+                        },
+                        user: {
+                            id: userId,
+                            name: targetEmail,
+                            displayName: user?.user_metadata?.first_name || targetEmail,
+                        },
+                        pubKeyCredParams: [
+                            { type: 'public-key', alg: -7 }, // ES256
+                            { type: 'public-key', alg: -257 }, // RS256
+                        ],
+                        authenticatorSelection: {
+                            authenticatorAttachment: 'platform',
+                            userVerification: 'preferred', // Alterado de required para preferred p/ windows
+                            residentKey: 'discouraged', // Alterado de required para discouraged p/ evitar forçar MS Authenticator
+                        },
+                        timeout: 60000,
+                        attestation: 'none',
                     },
-                    user: {
-                        id: userId,
-                        name: user.email || 'user',
-                        displayName: user?.user_metadata?.first_name || user.email || 'Usuário',
-                    },
-                    pubKeyCredParams: [
-                        { type: 'public-key', alg: -7 }, // ES256
-                        { type: 'public-key', alg: -257 }, // RS256
-                    ],
-                    authenticatorSelection: {
-                        authenticatorAttachment: 'platform',
-                        userVerification: 'required',
-                        residentKey: 'required',
-                    },
-                    timeout: 60000,
-                    attestation: 'none',
-                },
-            })
+                })
 
-            if (credential && credential.id) {
-                // We save the credential id so we can specifically request this one during auth
-                localStorage.setItem(`${STORAGE_KEY}:${user.id}`, credential.id)
-                setIsEnabled(true)
-                return true
+                if (credential && credential.id) {
+                    localStorage.setItem(STORAGE_KEY, credential.id)
+
+                    if (email && password) {
+                        // Salvar credenciais ofuscadas para auto-login posterior
+                        const str = JSON.stringify({ email, password })
+                        localStorage.setItem(CREDENTIALS_KEY, obfuscate(str))
+                    }
+
+                    setIsEnabled(true)
+                    return true
+                }
+                return false
+            } catch (error) {
+                console.error('Erro ao habilitar biometria:', error)
+                return false
             }
-            return false
-        } catch (error) {
-            console.error('Erro ao habilitar biometria:', error)
-            return false
-        }
-    }, [user, isSupported])
+        },
+        [user, isSupported]
+    )
 
     const disable = useCallback(() => {
-        if (!user) return
-        localStorage.removeItem(`${STORAGE_KEY}:${user.id}`)
+        localStorage.removeItem(STORAGE_KEY)
+        localStorage.removeItem(CREDENTIALS_KEY)
         setIsEnabled(false)
-    }, [user])
+    }, [])
 
     const authenticate = useCallback(async () => {
-        if (!user || !isSupported) return false
+        if (!isSupported) return false
 
-        const credentialId = localStorage.getItem(`${STORAGE_KEY}:${user.id}`)
+        const credentialId = localStorage.getItem(STORAGE_KEY)
         if (!credentialId) return false
 
         try {
@@ -123,13 +143,13 @@ export function useBiometrics() {
                             id: base64UrlToArrayBuffer(credentialId),
                         },
                     ],
-                    userVerification: 'required',
+                    userVerification: 'preferred',
                     timeout: 60000,
                 },
             })
 
             if (assertion) {
-                // Local auth success
+                // Biometria passou com sucesso!
                 return true
             }
             return false
@@ -137,7 +157,30 @@ export function useBiometrics() {
             console.error('Erro durante autenticação biométrica:', error)
             return false
         }
-    }, [user, isSupported])
+    }, [isSupported])
+
+    // Um helper que faz a biometria nativa e DEPOIS loga no Supabase
+    const authenticateAndSignIn = useCallback(async () => {
+        const credsStr = localStorage.getItem(CREDENTIALS_KEY)
+        if (!credsStr) return { success: false, error: 'Credenciais não encontradas.' }
+
+        // 1. Validar FaceID
+        const authSuccess = await authenticate()
+        if (!authSuccess) return { success: false, error: 'Autenticação biométrica falhou.' }
+
+        // 2. Logar no Supabase
+        try {
+            const { email, password } = JSON.parse(deobfuscate(credsStr))
+            const { error } = await signIn(email, password)
+
+            if (error) {
+                return { success: false, error: 'E-mail ou senha expirados/inválidos. Faça login novamente.' }
+            }
+            return { success: true }
+        } catch (err) {
+            return { success: false, error: 'Falha ao recuperar credenciais. Faça login novamente.' }
+        }
+    }, [authenticate, signIn])
 
     return {
         isSupported,
@@ -145,5 +188,6 @@ export function useBiometrics() {
         enable,
         disable,
         authenticate,
+        authenticateAndSignIn,
     }
 }
