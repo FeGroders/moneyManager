@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ArrowUpDown,
   Wallet,
+  Settings,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -25,6 +26,7 @@ const navItems: NavItem[] = [
   { to: '/wallet', label: 'Carteira', icon: <Wallet size={20} /> },
   { to: '/transactions', label: 'Movimentações', icon: <ArrowUpDown size={20} /> },
   { to: '/categories', label: 'Categorias', icon: <Tag size={20} /> },
+  { to: '/settings', label: 'Configurações', icon: <Settings size={20} /> },
 ]
 
 export function AppLayout() {
@@ -92,9 +94,14 @@ export function AppLayout() {
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <div className="sidebar-user-avatar" title={user?.email}>
-              {user?.email?.[0]?.toUpperCase() ?? 'U'}
+              {(user?.user_metadata?.first_name?.[0] ?? user?.email?.[0])?.toUpperCase() ?? 'U'}
             </div>
             <div className="sidebar-user-info">
+              {user?.user_metadata?.first_name ? (
+                <span className="sidebar-user-name">
+                  {user.user_metadata.first_name}{user.user_metadata.last_name ? ` ${user.user_metadata.last_name}` : ''}
+                </span>
+              ) : null}
               <span className="sidebar-user-email">{user?.email}</span>
             </div>
           </div>

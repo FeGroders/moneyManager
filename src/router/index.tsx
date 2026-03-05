@@ -9,6 +9,7 @@ import { CategoriesPage } from '@/pages/Categories'
 import { TransactionsPage } from '@/pages/Transactions'
 import { WalletPage } from '@/pages/Wallet'
 import { AccountDetailPage } from '@/pages/AccountDetail'
+import { SettingsPage } from '@/pages/Settings'
 
 export function AppRouter() {
   return (
@@ -30,6 +31,7 @@ export function AppRouter() {
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/wallet/:id" element={<AccountDetailPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Route>
 
