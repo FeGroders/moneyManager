@@ -12,6 +12,7 @@ import { TransactionsPage } from '@/pages/Transactions'
 import { WalletPage } from '@/pages/Wallet'
 import { AccountDetailPage } from '@/pages/AccountDetail'
 import { SettingsPage } from '@/pages/Settings'
+import { RecurrentsPage } from '@/pages/Recurrents'
 
 export function AppRouter() {
   return (
@@ -36,6 +37,7 @@ export function AppRouter() {
               <Route path="/wallet" element={<WalletPage />} />
               <Route path="/wallet/:id" element={<AccountDetailPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/recurrents" element={<RecurrentsPage />} />
             </Route>
           </Route>
 

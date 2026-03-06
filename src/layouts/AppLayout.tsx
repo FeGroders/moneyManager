@@ -10,6 +10,7 @@ import {
   ChevronRight,
   ArrowUpDown,
   Wallet,
+  RefreshCw,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -23,6 +24,7 @@ const navItems: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
   { to: '/wallet', label: 'Carteira', icon: <Wallet size={20} /> },
   { to: '/transactions', label: 'Movimentações', icon: <ArrowUpDown size={20} /> },
+  { to: '/recurrents', label: 'Recorrentes', icon: <RefreshCw size={20} /> },
   { to: '/categories', label: 'Categorias', icon: <Tag size={20} /> },
 ]
 

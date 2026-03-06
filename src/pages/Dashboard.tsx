@@ -4,6 +4,7 @@ import { TrendingUp, Activity, PieChart as PieChartIcon, BarChart2, Plus, Bankno
 import { useAuth } from '@/contexts/AuthContext'
 import { getTransactions } from '@/services/transactionsService'
 import { accountsService } from '@/services/accountsService'
+import { processRecurrings } from '@/services/recurringService'
 import type { Transaction } from '@/types/transaction'
 import type { Account } from '@/types/account'
 import {
@@ -64,6 +65,8 @@ export function DashboardPage() {
       } finally {
         setLoading(false)
       }
+      // Processa recorrentes em background (não bloqueia o carregamento)
+      processRecurrings(user.id).catch(console.error)
     }
     load()
   }, [user])

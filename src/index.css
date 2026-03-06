@@ -1874,3 +1874,421 @@ body,
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Recorrentes Page ──────────────────────────────────────────── */
+.recurring-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.recurring-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.recurring-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.recurring-title-icon {
+  color: var(--color-primary-light);
+  flex-shrink: 0;
+}
+
+.recurring-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+
+.recurring-subtitle {
+  font-size: 0.88rem;
+  color: var(--color-muted);
+}
+
+.recurring-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #7c3aed, #9f67ff);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: 0 4px 18px var(--color-primary-glow);
+  white-space: nowrap;
+}
+
+.recurring-add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 26px rgba(124, 58, 237, 0.55);
+}
+
+.recurring-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--color-error-dim);
+  border: 1px solid rgba(255, 92, 122, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--color-error);
+  font-size: 0.88rem;
+  margin-bottom: 24px;
+}
+
+.recurring-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.recurring-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.recurring-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.expense-header {
+  color: var(--color-error);
+  background: rgba(255, 92, 122, 0.05);
+}
+
+.income-header {
+  color: var(--color-success);
+  background: rgba(16, 217, 136, 0.05);
+}
+
+.recurring-count {
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.recurring-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.88rem;
+}
+
+.recurring-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Recurring Card ─────────────────────────────────────────────── */
+.recurring-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition);
+}
+
+.recurring-card:last-child {
+  border-bottom: none;
+}
+
+.recurring-card:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.recurring-card-inactive {
+  opacity: 0.55;
+}
+
+.recurring-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-expense {
+  background: rgba(255, 92, 122, 0.12);
+  color: var(--color-error);
+}
+
+.icon-income {
+  background: rgba(16, 217, 136, 0.12);
+  color: var(--color-success);
+}
+
+.recurring-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.recurring-card-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #e4e6f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.badge-inactive {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-muted);
+}
+
+.recurring-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.recurring-card-day {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.recurring-card-tag {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-muted);
+  border: 1px solid var(--color-border);
+}
+
+.recurring-card-amount {
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+.amount-expense { color: var(--color-error); }
+.amount-income  { color: var(--color-success); }
+
+.recurring-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #e4e6f0;
+}
+
+.icon-btn-danger:hover {
+  background: rgba(255, 92, 122, 0.12);
+  border-color: rgba(255, 92, 122, 0.35);
+  color: var(--color-error);
+}
+
+/* ─── Recurring Loading ──────────────────────────────────────────── */
+.recurring-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 300px;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.recurring-spinner {
+  color: var(--color-primary-light);
+  animation: spin 1s linear infinite;
+}
+
+/* ─── Recurring Modal ────────────────────────────────────────────── */
+/* Type toggle (Entrada / Saída) */
+.type-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.type-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-muted);
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.type-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e4e6f0;
+}
+
+.type-btn-expense-active {
+  background: rgba(255, 92, 122, 0.12) !important;
+  border-color: rgba(255, 92, 122, 0.4) !important;
+  color: var(--color-error) !important;
+}
+
+.type-btn-income-active {
+  background: rgba(16, 217, 136, 0.1) !important;
+  border-color: rgba(16, 217, 136, 0.35) !important;
+  color: var(--color-success) !important;
+}
+
+/* Input with leading icon */
+.input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.input-with-icon {
+  padding-left: 36px !important;
+}
+
+/* Toggle switch (Ativo) */
+.form-group-inline {
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.toggle-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: default;
+}
+
+.toggle-hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  transition: background var(--transition), border-color var(--transition);
+  position: relative;
+}
+
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  background: var(--color-muted);
+  border-radius: 50%;
+  transition: transform var(--transition), background var(--transition);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: rgba(16, 217, 136, 0.2);
+  border-color: var(--color-success);
+}
+
+.toggle-switch input:checked + .toggle-slider::after {
+  transform: translateX(18px);
+  background: var(--color-success);
+}
+
+/* Spin utility class */
+.spin {
+  animation: spin 0.8s linear infinite;
+}
