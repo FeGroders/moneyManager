@@ -54,3 +54,21 @@ BEGIN
     END IF;
 END
 $$;
+
+create table public.bills (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references auth.users(id) on delete cascade,
+  name        text not null,
+  amount      numeric(12,2) not null,
+  due_date    date not null,
+  type        text not null check (type in ('income','expense')),
+  paid        boolean not null default false,
+  category_id uuid references public.categories(id) on delete set null,
+  notes       text,
+  created_at  timestamptz not null default now()
+);
+
+alter table public.bills enable row level security;
+
+create policy "users see own bills" on public.bills
+  for all using (auth.uid() = user_id);

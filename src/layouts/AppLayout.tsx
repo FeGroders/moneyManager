@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   Wallet,
   RefreshCw,
+  ClipboardList,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -25,6 +26,7 @@ const navItems: NavItem[] = [
   { to: '/wallet', label: 'Carteira', icon: <Wallet size={20} /> },
   { to: '/transactions', label: 'Movimentações', icon: <ArrowUpDown size={20} /> },
   { to: '/recurrents', label: 'Recorrentes', icon: <RefreshCw size={20} /> },
+  { to: '/bills', label: 'Contas', icon: <ClipboardList size={20} /> },
   { to: '/categories', label: 'Categorias', icon: <Tag size={20} /> },
 ]
 

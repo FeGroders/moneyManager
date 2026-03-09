@@ -13,6 +13,7 @@ import { WalletPage } from '@/pages/Wallet'
 import { AccountDetailPage } from '@/pages/AccountDetail'
 import { SettingsPage } from '@/pages/Settings'
 import { RecurrentsPage } from '@/pages/Recurrents'
+import { BillsPage } from '@/pages/Bills'
 
 export function AppRouter() {
   return (
@@ -38,6 +39,7 @@ export function AppRouter() {
               <Route path="/wallet/:id" element={<AccountDetailPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/recurrents" element={<RecurrentsPage />} />
+              <Route path="/bills" element={<BillsPage />} />
             </Route>
           </Route>
 
