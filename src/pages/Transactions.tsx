@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   ArrowUpDown,
@@ -12,6 +12,9 @@ import {
   Tag,
   ChevronDown,
   Wallet,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -29,6 +32,8 @@ import type { Transaction } from '@/types/transaction'
 import type { Category } from '@/types/category'
 import type { Account } from '@/types/account'
 
+const PAGE_SIZE = 15
+
 const transactionSchema = z.object({
   name: z.string().optional().nullable(),
   amount: z
@@ -42,6 +47,7 @@ const transactionSchema = z.object({
 
 type TransactionFormValues = z.infer<typeof transactionSchema>
 
+
 export function TransactionsPage() {
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -54,9 +60,20 @@ export function TransactionsPage() {
   // Modal de Criação / Edição
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
-  
+
   // Exclusão
   const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // Filtros
+  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all')
+  const [filterCategoryId, setFilterCategoryId] = useState<string>('all')
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('')
+  const [filterDateTo, setFilterDateTo] = useState<string>('')
+  const [isFilterCategoryOpen, setIsFilterCategoryOpen] = useState(false)
+  const filterCategoryRef = useRef<HTMLDivElement>(null)
+
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1)
 
   const {
     register,
@@ -69,7 +86,7 @@ export function TransactionsPage() {
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       type: 'expense',
-      date: new Date().toISOString().split('T')[0], // Hoje
+      date: new Date().toISOString().split('T')[0],
       amount: 0,
       name: '',
       category_id: '',
@@ -80,7 +97,7 @@ export function TransactionsPage() {
   const formCategoryId = watch('category_id')
   const formAccountId = watch('account_id')
 
-  // Custom Select States
+  // Custom Select States (modal)
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false)
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false)
   const categoryDropdownRef = useRef<HTMLDivElement>(null)
@@ -93,6 +110,9 @@ export function TransactionsPage() {
       }
       if (accountDropdownRef.current && !accountDropdownRef.current.contains(event.target as Node)) {
         setIsAccountDropdownOpen(false)
+      }
+      if (filterCategoryRef.current && !filterCategoryRef.current.contains(event.target as Node)) {
+        setIsFilterCategoryOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -138,6 +158,44 @@ export function TransactionsPage() {
       setSearchParams(searchParams, { replace: true })
     }
   }, [searchParams, setSearchParams])
+
+  // Resetar página ao mudar filtros
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterType, filterCategoryId, filterDateFrom, filterDateTo])
+
+  // Transações filtradas
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
+      if (filterType !== 'all' && t.type !== filterType) return false
+      if (filterCategoryId !== 'all' && t.category_id !== filterCategoryId) return false
+      if (filterDateFrom && t.date < filterDateFrom) return false
+      if (filterDateTo && t.date > filterDateTo) return false
+      return true
+    })
+  }, [transactions, filterType, filterCategoryId, filterDateFrom, filterDateTo])
+
+  // Paginação
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE))
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE
+    return filteredTransactions.slice(start, start + PAGE_SIZE)
+  }, [filteredTransactions, currentPage])
+
+  // Categorias disponíveis nos filtros (apenas as que existem nas transações)
+  const filterCategories = useMemo(() => {
+    const usedCategoryIds = new Set(transactions.map(t => t.category_id).filter(Boolean))
+    return categories.filter(c => usedCategoryIds.has(c.id))
+  }, [transactions, categories])
+
+  const hasActiveFilters = filterType !== 'all' || filterCategoryId !== 'all' || !!filterDateFrom || !!filterDateTo
+
+  function clearFilters() {
+    setFilterType('all')
+    setFilterCategoryId('all')
+    setFilterDateFrom('')
+    setFilterDateTo('')
+  }
 
   function openCreateModal() {
     setEditingTransaction(null)
@@ -216,6 +274,11 @@ export function TransactionsPage() {
   // Filtrar categorias com base no tipo selecionado no modal
   const filteredCategories = categories.filter((c) => c.type === formType)
 
+  const selectedFilterCategoryName =
+    filterCategoryId === 'all'
+      ? 'Categoria'
+      : categories.find(c => c.id === filterCategoryId)?.name || 'Categoria'
+
   return (
     <div className="page">
       <div className="page-header">
@@ -236,6 +299,180 @@ export function TransactionsPage() {
 
       {errorMsg && <div className="alert alert-error mb-16">{errorMsg}</div>}
 
+      {/* Barra de Filtros */}
+      {!loading && transactions.length > 0 && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '10px',
+          alignItems: 'center',
+          marginBottom: '16px',
+          padding: '12px 16px',
+          background: 'var(--color-surface)',
+          borderRadius: '12px',
+          border: '1px solid var(--color-border)',
+        }}>
+          <Filter size={16} style={{ color: 'var(--color-muted)', flexShrink: 0 }} />
+
+          {/* Filtro Tipo */}
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {(['all', 'income', 'expense'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => setFilterType(type)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  borderColor: filterType === type
+                    ? type === 'income' ? 'var(--color-success)' : type === 'expense' ? 'var(--color-danger)' : 'var(--color-primary)'
+                    : 'var(--color-border)',
+                  background: filterType === type
+                    ? type === 'income' ? 'rgba(16,185,129,0.15)' : type === 'expense' ? 'rgba(239,68,68,0.15)' : 'rgba(139,92,246,0.15)'
+                    : 'transparent',
+                  color: filterType === type
+                    ? type === 'income' ? 'var(--color-success)' : type === 'expense' ? 'var(--color-danger)' : 'var(--color-primary-light)'
+                    : 'var(--color-muted)',
+                }}
+              >
+                {type === 'all' ? 'Todas' : type === 'income' ? 'Entradas' : 'Saídas'}
+              </button>
+            ))}
+          </div>
+
+          {/* Filtro Categoria */}
+          <div ref={filterCategoryRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setIsFilterCategoryOpen(v => !v)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 12px',
+                borderRadius: '8px',
+                border: '1px solid',
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                borderColor: filterCategoryId !== 'all' ? 'var(--color-primary)' : 'var(--color-border)',
+                background: filterCategoryId !== 'all' ? 'rgba(139,92,246,0.15)' : 'transparent',
+                color: filterCategoryId !== 'all' ? 'var(--color-primary-light)' : 'var(--color-muted)',
+              }}
+            >
+              <Tag size={13} />
+              {selectedFilterCategoryName}
+              <ChevronDown size={13} style={{ transform: isFilterCategoryOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+            </button>
+            {isFilterCategoryOpen && (
+              <div className="custom-select-dropdown" style={{ minWidth: '180px', top: 'calc(100% + 4px)', left: 0 }}>
+                <div
+                  className={`custom-select-option ${filterCategoryId === 'all' ? 'selected' : ''}`}
+                  onClick={() => { setFilterCategoryId('all'); setIsFilterCategoryOpen(false) }}
+                >
+                  Todas as categorias
+                </div>
+                {filterCategories.map(c => (
+                  <div
+                    key={c.id}
+                    className={`custom-select-option ${filterCategoryId === c.id ? 'selected' : ''}`}
+                    onClick={() => { setFilterCategoryId(c.id); setIsFilterCategoryOpen(false) }}
+                  >
+                    {c.name}
+                  </div>
+                ))}
+                {filterCategories.length === 0 && (
+                  <div className="custom-select-option" style={{ color: 'var(--color-muted)', pointerEvents: 'none' }}>
+                    Nenhuma categoria
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Filtro Período */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Calendar size={13} style={{ color: 'var(--color-muted)', flexShrink: 0 }} />
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={e => setFilterDateFrom(e.target.value)}
+              title="Data inicial"
+              style={{
+                padding: '5px 10px',
+                borderRadius: '8px',
+                border: '1px solid',
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                background: filterDateFrom ? 'rgba(139,92,246,0.15)' : 'transparent',
+                borderColor: filterDateFrom ? 'var(--color-primary)' : 'var(--color-border)',
+                color: filterDateFrom ? 'var(--color-primary-light)' : 'var(--color-muted)',
+                outline: 'none',
+                colorScheme: 'dark',
+              }}
+            />
+            <span style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>até</span>
+            <input
+              type="date"
+              value={filterDateTo}
+              min={filterDateFrom || undefined}
+              onChange={e => setFilterDateTo(e.target.value)}
+              title="Data final"
+              style={{
+                padding: '5px 10px',
+                borderRadius: '8px',
+                border: '1px solid',
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                background: filterDateTo ? 'rgba(139,92,246,0.15)' : 'transparent',
+                borderColor: filterDateTo ? 'var(--color-primary)' : 'var(--color-border)',
+                color: filterDateTo ? 'var(--color-primary-light)' : 'var(--color-muted)',
+                outline: 'none',
+                colorScheme: 'dark',
+              }}
+            />
+          </div>
+
+          {/* Limpar filtros */}
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 10px',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border)',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                background: 'transparent',
+                color: 'var(--color-muted)',
+                marginLeft: 'auto',
+              }}
+            >
+              <X size={13} />
+              Limpar
+            </button>
+          )}
+
+          {/* Contador */}
+          <span style={{
+            fontSize: '0.78rem',
+            color: 'var(--color-muted)',
+            marginLeft: hasActiveFilters ? '0' : 'auto',
+          }}>
+            {filteredTransactions.length} {filteredTransactions.length === 1 ? 'resultado' : 'resultados'}
+          </span>
+        </div>
+      )}
+
       {loading ? (
         <div className="loading-screen" style={{ minHeight: '300px' }}>
           <div className="loading-spinner" />
@@ -252,72 +489,153 @@ export function TransactionsPage() {
             Nova Movimentação
           </button>
         </div>
+      ) : filteredTransactions.length === 0 ? (
+        <div className="empty-state">
+          <Filter size={48} className="empty-icon" />
+          <p className="empty-title">Nenhum resultado encontrado</p>
+          <p className="empty-sub">Tente ajustar os filtros para ver mais movimentações.</p>
+          <button className="btn btn-ghost" onClick={clearFilters}>
+            <X size={16} />
+            Limpar filtros
+          </button>
+        </div>
       ) : (
-        <div className="transactions-list">
-          {transactions.map((txn) => (
-            <div
-              key={txn.id}
-              className={`transaction-item ${deletingId === txn.id ? 'txn-deleting' : ''}`}
-            >
-              <div className="txn-left">
-                <div className={`txn-icon ${txn.type === 'income' ? 'txn-icon-income' : 'txn-icon-expense'}`}>
-                  {txn.type === 'income' ? <ArrowUpCircle size={24} /> : <ArrowDownCircle size={24} />}
-                </div>
-                <div className="txn-details">
-                  <span className="txn-name">
-                    {txn.name || (txn.type === 'income' ? 'Nova Entrada' : 'Nova Saída')}
-                  </span>
-                  <div className="txn-meta">
-                    <span className="txn-date">
-                      <Calendar size={12} />
-                      {new Date(txn.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+        <>
+          <div className="transactions-list">
+            {paginatedTransactions.map((txn) => (
+              <div
+                key={txn.id}
+                className={`transaction-item ${deletingId === txn.id ? 'txn-deleting' : ''}`}
+              >
+                <div className="txn-left">
+                  <div className={`txn-icon ${txn.type === 'income' ? 'txn-icon-income' : 'txn-icon-expense'}`}>
+                    {txn.type === 'income' ? <ArrowUpCircle size={24} /> : <ArrowDownCircle size={24} />}
+                  </div>
+                  <div className="txn-details">
+                    <span className="txn-name">
+                      {txn.name || (txn.type === 'income' ? 'Nova Entrada' : 'Nova Saída')}
                     </span>
-                    {txn.categories && (
-                      <span className="txn-category">
-                        <Tag size={12} />
-                        {txn.categories.name}
+                    <div className="txn-meta">
+                      <span className="txn-date">
+                        <Calendar size={12} />
+                        {new Date(txn.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                       </span>
-                    )}
-                    {txn.accounts && (
-                      <span className="txn-category" style={{ color: 'var(--color-primary-light)' }}>
-                        <Wallet size={12} />
-                        {txn.accounts.name}
-                      </span>
-                    )}
+                      {txn.categories && (
+                        <span className="txn-category">
+                          <Tag size={12} />
+                          {txn.categories.name}
+                        </span>
+                      )}
+                      {txn.accounts && (
+                        <span className="txn-category" style={{ color: 'var(--color-primary-light)' }}>
+                          <Wallet size={12} />
+                          {txn.accounts.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="txn-right">
+                  <span className={`txn-amount ${txn.type === 'income' ? 'text-success' : ''}`}>
+                    {txn.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(txn.amount)}
+                  </span>
+                  <div className="txn-actions">
+                    <button
+                      className="btn-icon"
+                      onClick={() => openEditModal(txn)}
+                      title="Editar"
+                      disabled={deletingId === txn.id}
+                    >
+                      <Pencil size={18} />
+                    </button>
+                    <button
+                      className="btn-icon btn-icon-danger"
+                      onClick={() => handleDelete(txn.id)}
+                      title="Excluir"
+                      disabled={deletingId === txn.id}
+                    >
+                      {deletingId === txn.id ? (
+                        <div className="btn-spinner-sm" />
+                      ) : (
+                        <Trash2 size={18} />
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
+            ))}
+          </div>
 
-              <div className="txn-right">
-                <span className={`txn-amount ${txn.type === 'income' ? 'text-success' : ''}`}>
-                  {txn.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(txn.amount)}
-                </span>
-                <div className="txn-actions">
-                  <button
-                    className="btn-icon"
-                    onClick={() => openEditModal(txn)}
-                    title="Editar"
-                    disabled={deletingId === txn.id}
-                  >
-                    <Pencil size={18} />
-                  </button>
-                  <button
-                    className="btn-icon btn-icon-danger"
-                    onClick={() => handleDelete(txn.id)}
-                    title="Excluir"
-                    disabled={deletingId === txn.id}
-                  >
-                    {deletingId === txn.id ? (
-                      <div className="btn-spinner-sm" />
-                    ) : (
-                      <Trash2 size={18} />
-                    )}
-                  </button>
-                </div>
-              </div>
+          {/* Paginação */}
+          {totalPages > 1 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              marginTop: '24px',
+              paddingTop: '16px',
+              borderTop: '1px solid var(--color-border)',
+            }}>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="btn-icon"
+                title="Página anterior"
+              >
+                <ChevronLeft size={18} />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                .reduce<(number | 'ellipsis')[]>((acc, page, idx, arr) => {
+                  if (idx > 0 && page - (arr[idx - 1] as number) > 1) acc.push('ellipsis')
+                  acc.push(page)
+                  return acc
+                }, [])
+                .map((item, idx) =>
+                  item === 'ellipsis' ? (
+                    <span key={`ellipsis-${idx}`} style={{ color: 'var(--color-muted)', padding: '0 4px' }}>…</span>
+                  ) : (
+                    <button
+                      key={item}
+                      onClick={() => setCurrentPage(item as number)}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '8px',
+                        border: '1px solid',
+                        fontSize: '0.85rem',
+                        fontWeight: currentPage === item ? 600 : 400,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                        borderColor: currentPage === item ? 'var(--color-primary)' : 'var(--color-border)',
+                        background: currentPage === item ? 'rgba(139,92,246,0.2)' : 'transparent',
+                        color: currentPage === item ? 'var(--color-primary-light)' : 'var(--color-text)',
+                      }}
+                    >
+                      {item}
+                    </button>
+                  )
+                )
+              }
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="btn-icon"
+                title="Próxima página"
+              >
+                <ChevronRight size={18} />
+              </button>
+
+              <span style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginLeft: '8px' }}>
+                {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredTransactions.length)} de {filteredTransactions.length}
+              </span>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {/* Modal Nova/Editar Movimentação */}
@@ -428,7 +746,6 @@ export function TransactionsPage() {
                     </div>
                   )}
                 </div>
-                {/* Hidden input to ensure register works if needed */}
                 <input type="hidden" {...register('category_id')} />
 
                 {filteredCategories.length === 0 && (

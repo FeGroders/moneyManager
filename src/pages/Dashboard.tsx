@@ -82,6 +82,7 @@ export function DashboardPage() {
     let expense = 0
 
     transactions.forEach(t => {
+      if (t.transfer_id) return
       const tDate = parseISO(t.date)
       if (isWithinInterval(tDate, { start: startOfCurrentMonth, end: endOfCurrentMonth })) {
         if (t.type === 'income') income += Number(t.amount)
@@ -107,6 +108,7 @@ export function DashboardPage() {
     }
 
     transactions.forEach(t => {
+      if (t.transfer_id) return
       const tDate = parseISO(t.date)
       const key = format(tDate, 'yyyy-MM')
       if (dataMap[key]) {
@@ -130,6 +132,7 @@ export function DashboardPage() {
     const expensesByCategory: Record<string, number> = {}
 
     transactions.forEach(t => {
+      if (t.transfer_id) return
       const tDate = parseISO(t.date)
       if (t.type === 'expense' && isWithinInterval(tDate, { start: startOfCurrentMonth, end: endOfCurrentMonth })) {
         const catName = t.categories?.name || 'Sem Categoria'

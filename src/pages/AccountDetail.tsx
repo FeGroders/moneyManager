@@ -67,7 +67,7 @@ function buildMonthlyData(transactions: Transaction[]): MonthData[] {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const label = `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear() !== now.getFullYear() ? d.getFullYear() : ''}`
 
-    const monthTxns = transactions.filter((t) => t.date.startsWith(key))
+    const monthTxns = transactions.filter((t) => t.date.startsWith(key) && !t.transfer_id)
     const income = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0)
     const expense = monthTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0)
 

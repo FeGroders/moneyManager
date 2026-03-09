@@ -9,6 +9,7 @@ export interface Transaction {
     category_id: string | null
     account_id: string | null
     type: TransactionType
+    transfer_id?: string | null
     created_at?: string
 
     // Relacionamentos (preenchido quando fazemos JOIN)
